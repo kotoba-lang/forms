@@ -1,8 +1,12 @@
 # forms
 
-Portable CLJC forms model for `forms.gftd.ai`.
+[![CI](https://github.com/kotoba-lang/forms/actions/workflows/ci.yml/badge.svg)](https://github.com/kotoba-lang/forms/actions/workflows/ci.yml)
 
-Forms, fields, submissions, and validation rules are plain EDN.
+Portable CLJC model for kotoba-lang/forms.
+
+Pages editor: https://kotoba-lang.github.io/forms/
+
+The Pages UI is local to kotoba-lang and does not redirect to external hosts.
 
 ## Test
 
