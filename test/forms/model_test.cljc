@@ -22,7 +22,24 @@
     ;; discriminant and the values.
     (is (= "contact" (get payload "forms/id")))
     (is (= ["name" "email"] (mapv #(get % "forms/id") (get payload "forms/fields"))))
-    (is (= ["text" "email"] (mapv #(get % "forms/field-type") (get payload "forms/fields"))))))
+    (is (= ["text" "email"] (mapv #(get % "forms/field-type") (get payload "forms/fields"))))
+    ;; And closed again by a reader that knows the schema.
+    (is (= form (wire/rehydrate-form payload)))
+    (is (= form (wire/form-of-envelope (:body envelope))))
+    (is (v/valid-form? (wire/form-of-envelope (:body envelope))))))
+
+(deftest validate-cannot-see-a-form-that-was-not-rehydrated
+  ;; This is the reason rehydration is not optional for anything that
+  ;; validates. A projected payload is keyed by strings, so `:forms/fields`
+  ;; is nil, so `form-problems` iterates nothing and reports nothing — and a
+  ;; caller reading that as "valid" has been told the opposite of the truth.
+  (let [broken (assoc-in (f/seed-form) [:forms/fields 0 :forms/field-type] :not-a-type)
+        projected (wire/read-form-envelope (:body (wire/form-envelope broken)))]
+    (is (empty? (:forms/fields projected)))
+    (is (v/valid-form? projected) "vacuously, having seen no fields at all")
+    (is (not (v/valid-form? (wire/rehydrate-form projected))))
+    (is (= [:field/unknown-type]
+           (mapv :forms/code (v/form-problems (wire/rehydrate-form projected)))))))
 
 (deftest read-form-envelope-refuses-another-resource-kind
   (let [envelope (wire/form-envelope (f/seed-form))

@@ -1,21 +1,18 @@
 (ns forms.wire
   "Transit wire helpers for Kotoba Forms forms.
 
-  ## The payload comes back as plain JSON
+  ## Out is lossy, back is explicit
 
-  `sheets.wire` and `docs.wire` are the shape this follows, and both of them
-  have a round-trip test asserting `(= original (read (:body envelope)))`.
-  Those tests pass because sheets and docs pin `transit` at 77e3ce7d, which
-  is the last commit before the wire switched from Transit-tagged JSON to
-  plain JSON (0d45c30). This library pins the current `transit`, because
-  `:forms/form` is only an admitted resource kind there — so the payload it
-  reads back has string keys and vectors, not the original EDN.
+  `transit.core/write-json` projects onto plain JSON: keywords become bare
+  strings and map keys become strings. A form carries two keyword *values*
+  the schema has to put back — `:forms/type` and each field's
+  `:forms/field-type` — and nothing else that the projection changes.
 
-  That is the documented contract (`transit.core/read-office-envelope-body`:
-  \"callers that need EDN back on the payload convert it themselves\"), not a
-  defect here. It is written down because the two sibling libraries currently
-  demonstrate the opposite, and the difference is a pin rather than a
-  decision anyone made about forms."
+  A generic keywordizer cannot tell a field type from a label, which is why
+  `rehydrate-form` is here next to the model that defines them rather than in
+  `transit`. `read-form-envelope` returns the projection unchanged, for
+  callers that only want to look at a value; `rehydrate-form` returns
+  something `forms.model` and `forms.validate` will accept."
   (:require [transit.core :as transit]))
 
 (defn form-envelope
@@ -29,3 +26,26 @@
       (throw (ex-info "not a Forms form Transit envelope"
                       {:kind (:kotoba.resource/kind envelope)})))
     (:kotoba.resource/payload envelope)))
+
+;; ── back from plain JSON ────────────────────────────────────────────────────
+
+(defn- rehydrate-field [field]
+  (reduce-kv (fn [acc k v]
+               (assoc acc (keyword k) (if (= "forms/field-type" k) (keyword v) v)))
+             {} field))
+
+(defn rehydrate-form
+  "A plain-JSON payload back into a form."
+  [payload]
+  (reduce-kv
+   (fn [acc k v]
+     (case k
+       "forms/type" (assoc acc :forms/type (keyword v))
+       "forms/fields" (assoc acc :forms/fields (mapv rehydrate-field v))
+       (assoc acc (keyword k) v)))
+   {} payload))
+
+(defn form-of-envelope
+  "Read an envelope body and rehydrate it in one step."
+  [body]
+  (rehydrate-form (read-form-envelope body)))
