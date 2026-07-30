@@ -1,5 +1,10 @@
 {:paths ["src" "resources"]
- :deps {}
+ ;; Current transit rather than the 77e3ce7d that sheets and docs pin:
+ ;; :forms/form is only an admitted office resource kind here. See
+ ;; forms.wire's docstring for what that costs on the read side.
+ :deps {io.github.kotoba-lang/transit
+        {:git/url "https://github.com/kotoba-lang/transit.git"
+         :git/sha "ab5d9d956e088d77d7f91357f36a4a0c6bdfcadc"}}
  :aliases
  {:test {:extra-paths ["test"]
          :extra-deps {io.github.cognitect-labs/test-runner
