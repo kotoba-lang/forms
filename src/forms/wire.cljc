@@ -29,21 +29,33 @@
 
 ;; ── back from plain JSON ────────────────────────────────────────────────────
 
+;; Anything of the wrong shape passes straight through. This converter exists
+;; to hand a value to `forms.validate`, and one that throws is one the
+;; validator never gets to answer — the caller gets a crash where it should
+;; have got the list of what is wrong. Measured: `{"forms/fields" "nope"}`
+;; threw `Don't know how to create ISeq from: java.lang.Character`.
+
 (defn- rehydrate-field [field]
-  (reduce-kv (fn [acc k v]
-               (assoc acc (keyword k) (if (= "forms/field-type" k) (keyword v) v)))
-             {} field))
+  (if-not (map? field)
+    field
+    (reduce-kv (fn [acc k v]
+                 (assoc acc (keyword k)
+                        (if (and (= "forms/field-type" k) (string? v)) (keyword v) v)))
+               {} field)))
 
 (defn rehydrate-form
   "A plain-JSON payload back into a form."
   [payload]
-  (reduce-kv
-   (fn [acc k v]
-     (case k
-       "forms/type" (assoc acc :forms/type (keyword v))
-       "forms/fields" (assoc acc :forms/fields (mapv rehydrate-field v))
-       (assoc acc (keyword k) v)))
-   {} payload))
+  (if-not (map? payload)
+    payload
+    (reduce-kv
+     (fn [acc k v]
+       (case k
+         "forms/type" (assoc acc :forms/type (if (string? v) (keyword v) v))
+         "forms/fields" (assoc acc :forms/fields
+                               (if (sequential? v) (mapv rehydrate-field v) v))
+         (assoc acc (keyword k) v)))
+     {} payload)))
 
 (defn form-of-envelope
   "Read an envelope body and rehydrate it in one step."

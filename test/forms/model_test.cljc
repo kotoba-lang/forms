@@ -47,3 +47,12 @@
     (is (thrown? #?(:clj clojure.lang.ExceptionInfo
                     :cljs cljs.core.ExceptionInfo)
                  (wire/read-form-envelope body)))))
+
+(deftest a-malformed-payload-is-handed-on-rather-than-thrown-at
+  ;; The converter's job is to give `forms.validate` something to look at.
+  ;; One that throws is one the validator never answers.
+  (doseq [payload [{"forms/fields" "nope"}
+                   {"forms/fields" ["not-a-field"]}
+                   {"forms/type" 7}
+                   "not-a-form-at-all"]]
+    (is (some? (wire/rehydrate-form payload)) (str "survived: " (pr-str payload)))))
