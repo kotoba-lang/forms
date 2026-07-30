@@ -6,8 +6,8 @@
 ;;
 ;;   nbb --classpath "src:test:$(clojure -Spath)" scripts/test-cljs.cljs
 
-(require '[clojure.test :as t] 'forms.model-test 'forms.responses-test)
+(require '[clojure.test :as t] 'forms.model-test 'forms.responses-test 'forms.validate-test)
 
-(let [{:keys [fail error]} (t/run-tests 'forms.model-test 'forms.responses-test)]
+(let [{:keys [fail error]} (t/run-tests 'forms.model-test 'forms.responses-test 'forms.validate-test)]
   (when (pos? (+ (or fail 0) (or error 0)))
     (js/process.exit 1)))
