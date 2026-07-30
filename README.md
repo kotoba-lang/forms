@@ -16,11 +16,15 @@ arrangement `sheets` and `docs` have. Forms was the one without it, because
 `transit.core/office-resource-kinds` is closed and did not list `:forms/form`
 until now.
 
-The read side gives the payload back as plain JSON — string keys, vectors —
-rather than the EDN that went in. That is the current `transit` contract.
-`sheets` and `docs` assert lossless round-trips, and can, only because they
-pin the last commit before the wire moved off Transit-tagged JSON; this
-library pins the current one because that is where `:forms/form` exists.
+`read-form-envelope` gives the payload back as plain JSON — string keys,
+`"text"` where `:text` went in — because that is what the current `transit`
+wire carries. `rehydrate-form` turns it back into a form, and
+`form-of-envelope` does both in one step.
+
+**Anything that validates has to rehydrate first.** `forms.validate` reads
+`:forms/fields`, which on a projected payload is `nil`, so it iterates
+nothing and reports no problems — a broken form comes back "valid" rather
+than coming back wrong. There is a test for exactly that.
 
 ## Test
 
