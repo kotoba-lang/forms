@@ -44,8 +44,10 @@
 (deftest read-form-envelope-refuses-another-resource-kind
   (let [envelope (wire/form-envelope (f/seed-form))
         body (assoc (:body envelope) "kotoba.resource/kind" "docs/document")]
-    (is (thrown? #?(:clj clojure.lang.ExceptionInfo
-                    :cljs cljs.core.ExceptionInfo)
+    ;; `js/Error` rather than `cljs.core.ExceptionInfo`: nbb cannot resolve
+    ;; that symbol, so this branch could never run on the host it was written
+    ;; for. ExceptionInfo extends Error, so the assertion is the same one.
+    (is (thrown? #?(:clj clojure.lang.ExceptionInfo :cljs js/Error)
                  (wire/read-form-envelope body)))))
 
 (deftest a-malformed-payload-is-handed-on-rather-than-thrown-at
